@@ -1,0 +1,22 @@
+# build output
+*.log
+.pio/
+*.bak
+__pycache__/
+*.pyc
+
+# the upstream Meshtastic checkout (~1 GB, incl. build tree).
+# Reproduce it with patches/meshtastic-stt.patch instead of committing it.
+research/
+
+# local scratch: one-off patch scripts and log captures (superseded by scripts/ and patches/)
+/patch_*
+/apply_*.py
+/cap*.py
+/cap_*.ps1
+/flash_*.ps1
+/make_stt_ui.py
+/rewrite_ui.py
+/fix_cap_msg.py
+/update_doc.py
+/docs/handoff-claude-vscode.md
