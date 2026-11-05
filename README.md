@@ -91,24 +91,58 @@ pio run -e seeed_wio_tracker_L2-tft
 
 ### 3. 烧录
 
-首次（app + 文件系统 + 模型）：
+先确认串口（不是 COM41 就换成实际那个）：
 
 ```powershell
-.\flash_stt.ps1 -Port COM83
+[System.IO.Ports.SerialPort]::GetPortNames()
 ```
 
-之后只改了代码（app 分区）：
+#### 首次烧录 / 换过官方固件的板子
+
+必须写全 5 段：bootloader、分区表、app、文件系统、模型。**只写 app 会缺 `model` 分区，日志报
+`STT: no 'model' partition`，按钮看得见但按不动。**
+
+用脚本（等价于下面那段 esptool）：
 
 ```powershell
-.\flash_app.ps1 -Port COM83
+cd C:\Users\seeed\Documents\ChatGPT\L2_Demo
+.\scripts\flash_stt.ps1 -Port COM41
+```
+
+或者直接 esptool：
+
+```powershell
+cd research\meshtastic-firmware\.pio\build\seeed_wio_tracker_L2-tft
+$env:PYTHONUTF8 = "1"
+python "$env:USERPROFILE\.platformio\packages\tool-esptoolpy\esptool.py" `
+  --chip esp32s3 --port COM41 --baud 921600 write_flash `
+  0x0      bootloader.bin `
+  0x8000   partitions.bin `
+  0x10000  firmware-seeed_wio_tracker_L2-tft-2.8.3.51ac6ea.bin `
+  0xF10000 littlefs-seeed_wio_tracker_L2-tft-2.8.3.51ac6ea.bin `
+  0x950000 C:\Users\seeed\Documents\ChatGPT\L2_Demo\models\oido_v2b.tnm
+```
+
+#### 之后只改了代码
+
+已经刷过上面这套分区表的板子，只写 app 即可（约 20 秒）：
+
+```powershell
+.\scripts\flash_app.ps1 -Port COM41
+```
+
+```powershell
+python "$env:USERPROFILE\.platformio\packages\tool-esptoolpy\esptool.py" `
+  --chip esp32s3 --port COM41 --baud 921600 write_flash `
+  0x10000 firmware-seeed_wio_tracker_L2-tft-2.8.3.51ac6ea.bin
 ```
 
 模型分区布局（`default_16MB_stt.csv`）：
 
 | 分区 | 偏移 | 大小 |
 |---|---|---|
-| app0 | `0x10000` | 4.75 MB |
-| app1 | `0x4B0000` | 4.75 MB |
+| app0 | `0x10000` | 4.625 MB |
+| app1 | `0x4B0000` | 4.625 MB |
 | model | `0x950000` | 5.75 MB |
 | spiffs | `0xF10000` | 0.875 MB |
 | coredump | `0xFF0000` | 64 KB |
@@ -116,7 +150,7 @@ pio run -e seeed_wio_tracker_L2-tft
 ### 4. 抓日志
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\cap_log.ps1 -Seconds 60 -Out stt_run.log
+powershell -ExecutionPolicy Bypass -File .\scripts\cap_log.ps1 -Seconds 60 -Out stt_run.log
 ```
 
 ## 使用
